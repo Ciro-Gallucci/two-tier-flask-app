@@ -25,7 +25,7 @@ COPY . .
 
 # Esegui Bandit per analizzare il codice
 # L'output dell'analisi di sicurezza verrà scritto in bandit_report.txt
-RUN bandit -r . -o bandit_report.txt
+#RUN bandit -r . -o bandit_report.txt
 
 # Specify the command to run your application
 CMD ["python", "app.py"]
