@@ -1,65 +1,76 @@
-@Library("Shared") _
-pipeline{
-    
-    agent { label "dev"};
-    
-    stages{
-        stage("Code Clone"){
-            steps{
-               script{
-                   clone("https://github.com/LondheShubham153/two-tier-flask-app.git", "master")
-               }
+pipeline {
+    agent any
+
+    environment {
+        PROJECT_DIR = "${WORKSPACE}/two-tier-flask-app"
+        COMPOSE_FILE = "${PROJECT_DIR}/docker-compose.yml"
+    }
+
+    stages {
+
+        stage('Pulizia ambiente') {
+            steps {
+                echo 'Pulizia ambiente esistente del progetto...'
+                sh '''
+                # Stoppo e rimuovo SOLO i container di questo progetto, usando docker-compose down
+                if [ -f ${COMPOSE_FILE} ]; then
+                    docker-compose -f ${COMPOSE_FILE} down
+                fi
+
+                # Non tocco gli altri container, né le immagini globali!
+                '''
             }
         }
-        stage("Trivy File System Scan"){
-            steps{
-                script{
-                    trivy_fs()
+
+        stage('Clona repository') {
+            steps {
+                echo 'Pulizia vecchia cartella di progetto (se esiste)...'
+                sh '''
+                # Rimuovo la directory solo di questa repo
+                rm -rf ${PROJECT_DIR}
+
+                # Ora clono ex novo
+                git clone -b master https://github.com/Ciro-Gallucci/two-tier-flask-app.git ${PROJECT_DIR}
+                '''
+            }
+        }
+
+        stage('Build immagine Flask') {
+            steps {
+                echo 'Costruisco immagine Flask...'
+                dir("${PROJECT_DIR}") {
+                    sh '''
+                    docker build -t flaskapp:latest .
+                    '''
                 }
             }
         }
-        stage("Build"){
-            steps{
-                sh "docker build -t two-tier-flask-app ."
-            }
-            
-        }
-        stage("Test"){
-            steps{
-                echo "Developer / Tester tests likh ke dega..."
-            }
-            
-        }
-        stage("Push to Docker Hub"){
-            steps{
-                script{
-                    docker_push("dockerHubCreds","two-tier-flask-app")
-                }  
+
+        stage('Avvio docker-compose') {
+            steps {
+                echo 'Avvio dei servizi con Docker Compose...'
+                sh '''
+                docker-compose -f ${COMPOSE_FILE} up -d --build
+                '''
             }
         }
-        stage("Deploy"){
-            steps{
-                sh "docker compose up -d --build flask-app"
+
+        stage('Check servizi') {
+            steps {
+                echo 'Verifica stato container...'
+                sh 'docker ps'
             }
         }
+
     }
 
-post{
-        success{
-            script{
-                emailext from: 'mentor@trainwithshubham.com',
-                to: 'mentor@trainwithshubham.com',
-                body: 'Build success for Demo CICD App',
-                subject: 'Build success for Demo CICD App'
-            }
+    post {
+        success {
+            echo 'Applicazione Flask su localhost avviata con successo!'
+            echo 'Visita: http://localhost:5500'
         }
-        failure{
-            script{
-                emailext from: 'mentor@trainwithshubham.com',
-                to: 'mentor@trainwithshubham.com',
-                body: 'Build Failed for Demo CICD App',
-                subject: 'Build Failed for Demo CICD App'
-            }
+        failure {
+            echo 'Errore nella pipeline!'
         }
     }
 }
