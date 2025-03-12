@@ -44,5 +44,17 @@ services:
       retries: 5
       start_period: 30s
 
+  bandit:
+    image: python:3.9-slim
+    container_name: bandit
+    volumes:
+      - .:/app  # Monta il progetto nel container per analizzare il codice
+    working_dir: /app
+    command: ["bash", "-c", "pip install bandit && bandit -r . -o bandit_report.txt"]
+    depends_on:
+      - flask-app
+    networks:
+      - twotier
+
 networks:
   twotier:
