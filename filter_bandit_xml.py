@@ -36,7 +36,7 @@ def filter_bandit_xml(input_file, output_file):
     # Salva il nuovo albero XML filtrato
     tree = ET.ElementTree(new_root)
     tree.write(output_file, encoding="utf-8", xml_declaration=True)
-    print(f"✅ Report filtrato salvato in {output_file}")
+    print(f"Report filtrato salvato in {output_file}")
 
 if __name__ == "__main__":
     filter_bandit_xml(INPUT_XML, OUTPUT_XML)
