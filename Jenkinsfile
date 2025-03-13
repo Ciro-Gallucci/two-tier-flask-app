@@ -5,6 +5,9 @@ pipeline {
         PROJECT_DIR = "${WORKSPACE}/two-tier-flask-app"
         COMPOSE_FILE = "${PROJECT_DIR}/docker-compose.yml"
         VENV_DIR = "/var/jenkins_home/workspace/appdemo-new/venv"  // Directory per l'ambiente virtuale    
+        SEMGREP_RULES = "p/ci" // Regole predefinite per CI/CD, puoi personalizzarle
+        SEMGREP_REPORT_NAME = "semgrep-report.json"  // Nome del report per Semgrep
+        BANDIT_REPORT_NAME = "bandit-report.xml"  // Nome del report per Bandit
     }
 
     stages {
@@ -36,9 +39,9 @@ pipeline {
 
         stage('Imposta ambiente virtuale') {
             steps {
-                echo 'Creazione dell\'ambiente virtuale e installazione di Bandit...'
+                echo 'Creazione dell\'ambiente virtuale e installazione di Bandit e Semgrep...'
                 sh 'python3 -m venv $VENV_DIR'
-                sh '$VENV_DIR/bin/pip install --upgrade pip bandit'
+                sh '$VENV_DIR/bin/pip install --upgrade pip bandit semgrep'
             }
         }
 
@@ -47,11 +50,24 @@ pipeline {
                 script {
                     // Esegui Bandit solo nella cartella del progetto, escludendo l'ambiente virtuale
                     echo "Eseguo Bandit nella cartella del progetto..."
-                    sh(returnStatus: true, script: 'cd ${PROJECT_DIR} && ${VENV_DIR}/bin/bandit -r . -f xml -o bandit-report.xml')
+                    sh(returnStatus: true, script: 'cd ${PROJECT_DIR} && ${VENV_DIR}/bin/bandit -r . -f xml -o ${PROJECT_DIR}/bandit-report.xml')
                     echo "Analisi Bandit completata. Puoi controllare bandit-report.xml per i dettagli."
                     
                     // Verifica che il file sia stato creato nella cartella giusta
                     sh 'ls -l ${PROJECT_DIR}/bandit-report.xml'
+                }
+            }
+        }
+
+        stage('Esegui Semgrep') {
+            steps {
+                script {
+                    echo "Eseguo Semgrep nella cartella del progetto..."
+                    sh(returnStatus: true, script: 'cd ${PROJECT_DIR} && ${VENV_DIR}/bin/semgrep --config=${SEMGREP_RULES} --json > ${PROJECT_DIR}/${SEMGREP_REPORT_NAME}')
+                    echo "Analisi Semgrep completata. Puoi controllare ${SEMGREP_REPORT_NAME} per i dettagli."
+                    
+                    // Verifica che il file del report di Semgrep sia stato creato
+                    sh 'ls -l ${PROJECT_DIR}/${SEMGREP_REPORT_NAME}'
                 }
             }
         }
@@ -96,8 +112,8 @@ pipeline {
             echo 'Errore nella pipeline!'
         }
         always {
-            echo 'Archivia il report Bandit...'
-            archiveArtifacts artifacts: 'two-tier-flask-app/bandit-report.xml', fingerprint: true
+            echo 'Archivia i report Bandit e Semgrep...'
+            archiveArtifacts artifacts: 'two-tier-flask-app/bandit-report.xml, two-tier-flask-app/semgrep-report.json', fingerprint: true
         }
     }
 }
