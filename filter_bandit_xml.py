@@ -1,4 +1,4 @@
-import xml.etree.ElementTree as ET
+'''import xml.etree.ElementTree as ET
 
 INPUT_XML = "bandit-report.xml"
 OUTPUT_XML = "bandit-report-filtered.xml"
@@ -40,3 +40,4 @@ def filter_bandit_xml(input_file, output_file):
 
 if __name__ == "__main__":
     filter_bandit_xml(INPUT_XML, OUTPUT_XML)
+'''
