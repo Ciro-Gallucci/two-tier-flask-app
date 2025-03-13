@@ -18,7 +18,7 @@ RUN pip install mysqlclient
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Installa Bandit per l'analisi della sicurezza del codice
-RUN pip install bandit
+#RUN pip install bandit
 
 # Copy the rest of the application code
 COPY . .
