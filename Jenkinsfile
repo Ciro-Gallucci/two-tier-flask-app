@@ -45,12 +45,13 @@ pipeline {
         stage('Esegui Bandit') {
             steps {
                 script {
-                    // Esegui Bandit e forza l'uscita con codice 0 anche se Bandit rileva problemi
-                    // Questi verranno visualizzati nel report e non bloccheranno la pipe
-                    sh(returnStatus: true, script: './venv/bin/bandit -r . -f xml -o bandit-report.xml') 
+                    // Esegui Bandit solo nella cartella del progetto, escludendo l'ambiente virtuale
+                    echo "Eseguo Bandit nella cartella del progetto..."
+                    sh(returnStatus: true, script: 'cd ${PROJECT_DIR} && ${VENV_DIR}/bin/bandit -r . -f xml -o bandit-report.xml')
                     echo "Analisi Bandit completata. Puoi controllare bandit-report.xml per i dettagli."
-                    // Aggiungi questa riga per vedere se il file e' stato creato
-                    sh 'ls -l bandit-report.xml'
+                    
+                    // Verifica che il file sia stato creato nella cartella giusta
+                    sh 'ls -l ${PROJECT_DIR}/bandit-report.xml'
                 }
             }
         }
@@ -60,7 +61,7 @@ pipeline {
                 echo 'Costruisco immagine Flask...'
                 dir("${PROJECT_DIR}") {
                     sh '''
-                    docker build -t flaskapp:latest .
+                    docker build -t flaskapp:latest . 
                     '''
                 }
             }
@@ -96,7 +97,7 @@ pipeline {
         }
         always {
             echo 'Archivia il report Bandit...'
-            archiveArtifacts artifacts: 'bandit-report.xml', fingerprint: true
+            archiveArtifacts artifacts: 'two-tier-flask-app/bandit-report.xml', fingerprint: true
         }
     }
 }
